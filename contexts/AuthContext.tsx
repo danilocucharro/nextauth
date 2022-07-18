@@ -1,11 +1,11 @@
-import { createContext, ReactNode, useState } from "react";
-import { setCookie } from 'nookies' 
+import { createContext, ReactNode, useEffect, useState } from "react";
+import { setCookie, parseCookies } from 'nookies' 
 import Router from "next/router";
 import { api } from "../services/api";
 
-type User = {
+type User = {//dados que o usuario terá
     email: string;
-    permitions: string[];
+    permissions: string[];
     roles: string[];
 }
 
@@ -27,8 +27,20 @@ type AuthProviderProps = {
 export const AuthContext = createContext({} as AuthContextData)
 
 export function AuthProvider({ children }: AuthProviderProps){
-    const [user, setUser] = useState<User>()
+    const [user, setUser] = useState<User>();
     const isAuthenticated = !!user;
+
+    useEffect(() => {
+        const { 'nextauth.auth': token } = parseCookies()//devolvendo uma lista de todos o cokkies que estão salvos
+
+        if (token){//se tiver um novo token salvo no storage
+            api.get('/me').then(response => {
+                const { email, permissions, roles } = response.data //pegando os dados do usuario da rota do server
+
+                setUser({ email, permissions, roles }) //setando os dados resgatados
+            })
+        }
+    }, [])
 
     async function signIn({ email, password }: SignInCredentials){
         try{
@@ -37,7 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps){
                 password,
             })
 
-            const { token, refreshToken, permitions, roles } = response.data;
+            const { token, refreshToken, permissions, roles } = response.data;
     
             setCookie(undefined, 'nextauth.token', token, {
                 maxAge: 60 * 60 * 24 * 30, // tempo maximo que o cookie vai existir
@@ -50,9 +62,11 @@ export function AuthProvider({ children }: AuthProviderProps){
 
             setUser({
                 email,
-                permitions,
+                permissions,
                 roles,
             })
+
+            api.defaults.headers['Authorization'] = `Bearer ${token}`;
 
             Router.push('/dashboard');
         } catch(err){
