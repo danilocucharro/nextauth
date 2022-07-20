@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { setCookie, parseCookies } from 'nookies' 
-import Router from "next/router";
+import Router from 'next/router';
 import { api } from "../services/api";
 
 type User = {//dados que o usuario terá
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps){
     const isAuthenticated = !!user;
 
     useEffect(() => {
-        const { 'nextauth.auth': token } = parseCookies()//devolvendo uma lista de todos o cokkies que estão salvos
+        const { 'nextauth.token': token } = parseCookies()//devolvendo uma lista de todos o cokkies que estão salvos
 
         if (token){//se tiver um novo token salvo no storage
             api.get('/me').then(response => {
